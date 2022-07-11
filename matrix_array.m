@@ -15,7 +15,7 @@ classdef matrix_array
             %MATRIX_ARRAY Construct an instance of this class
             %   Detailed explanation goes here
             % 
-            % Generates a coordinates for a 2D array. Uni_distance is the
+            % Generates coordinates for a 2D array. Uni_distance is the
             % uniform distance between the array-elements
             %
             % r_a is the vector pointing to the middle of the array.
@@ -49,6 +49,30 @@ classdef matrix_array
             obj.column_elements = column_elements;
             obj.elements =  row_elements * column_elements;
             obj.uni_distance = element_distance;
+        end
+
+        function r_prime = config_mode(obj,mode,row_shift,column_shift)
+            row_lim = ceil((obj.row_elements)/mode);
+            column_lim = ceil((obj.column_elements)/mode);
+            r_prime = zeros(3,row_lim*column_lim);
+            r_ind =1;
+
+            if mode == 1
+                row_ind = 0;
+                column_ind = 0;
+            else 
+                row_ind = row_shift * obj.column_elements;
+                column_ind = column_shift;
+            end
+            
+            for i = 1:row_lim
+                for j = 1:column_lim
+                    element_index = row_ind + column_ind + (mode*(i-1))*obj.row_elements + mode*(j-1) +1;
+                    r_prime(:,r_ind) = obj.r_prime(:,element_index);
+                    r_ind = r_ind +1;
+                end
+            end
+
         end
     end
 end

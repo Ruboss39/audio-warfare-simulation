@@ -48,6 +48,8 @@ for mic_ind = 1:elements
     phase_shift_value = -k*(r_prime(1,mic_ind)*x_factor + ...
          r_prime(2,mic_ind)*y_factor);
 
+    %phase_shift_value = phase_shift_value - floor(phase_shift_value/(2*pi));
+
     % Sum the individually shifted data from the antenna elements, as well
     % as weight them with the appropriate weight.
     mic_data = mic_data + weight(mic_ind)*phase_shift(audio_signal(:,mic_ind),ny,phase_shift_value);

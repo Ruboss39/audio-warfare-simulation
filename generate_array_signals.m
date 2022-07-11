@@ -11,7 +11,7 @@ for sample = 1:length(t)
         y_i = r_prime(2,mic);
         temp_signal_sample = 0;
         for source = 1:length(sources)
-            if sources(source).t_start < t(sample) && t(sample) < sources(source).t_end
+            if sources(source).t_start <= t(sample) && t(sample) < sources(source).t_end
                 frequencies_ps = sources(source).frequency;
                 theta_source = sources(source).theta;
                 phi_source = sources(source).phi;
@@ -20,10 +20,12 @@ for sample = 1:length(t)
                     k = 2*pi*frequencies_ps(freq_ind)/c;
                     r_1 = [x_i;y_i;0];
                     r_2 = rho_source*r_vec(theta_source,phi_source);
-                    phase_offset = -k*norm(r_2-r_1);
+                    norm_factor = norm(r_2-r_1);
+                    phase_offset = -k*norm_factor;
                     %phase_offset = k*(x_i*sin(theta_source)*cos(phi_source) + ...
                         %y_i*sin(theta_source)*sin(phi_source));
-                    element_amplitude = 1/norm(r_2-r_1);
+                    element_amplitude = 1/norm_factor;
+                    %element_amplitude = 1;
         
                     temp_signal_sample = temp_signal_sample + ...
                        element_amplitude * sin(2*pi*frequencies_ps(freq_ind)*t(sample) + phase_offset);

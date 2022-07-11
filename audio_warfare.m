@@ -1,38 +1,58 @@
 %% Initialization
-f_sampling = 8000;     %sampling frequency in Hz
+f_sampling = 32000;     %sampling frequency in Hz
 t_start = 0;
-t_end = 2;
+t_end = 0.5;
 t_total = t_end - t_start;
 t = linspace(t_start,t_end,t_total*f_sampling); 
 
 %% Point audio source
-c = 340;
-away_distance = 700;    % The distance between the array and the sources
+c = 343;
+away_distance = 0.2;    % The distance between the array and the sources
 %sources = [audio_source(400,500,100,45,20,0,1),audio_source(450,600,200,0,0,0,1.5)];
-sources = [audio_source(1600,2500,40,20,140,away_distance,0,1.5),audio_source(1700,1900,40,30,0,away_distance,0.5,2)];
-%sources = [audio_source(200,1600,50,0,90,away_distance,0,2)];
+%sources = [audio_source(2600,3300,40,25,180,away_distance,0,0.35),audio_source(2700,2900,40,20,0,away_distance,0.15,0.5)];
+sources = [audio_source(440,440,50,45,30,away_distance,0,1)];
 
 %% Audio Array Geometry
 row_elements = 8;
 column_elements = 8;
 uni_distance = 20*10^-3;
-r_a1 = 10^-3 * [80;0;0];
-r_a2 = 10^-3 * [-80;0;0];
+%r_a1 = 10^-3 * [160;0;0];
+r_a1 = 10^-3 * [0;0;0];
+r_a2 = 10^-3 * [-80;80;0];
+r_a3 = 10^-3 * [80;-80];
+r_a4 = 10^-3 * [-80;-80];
 
 array_matrix = matrix_array(r_a1,uni_distance,row_elements,column_elements);
 array_matrix2 = matrix_array(r_a2,uni_distance,row_elements,column_elements);
-r_prime = array_matrix.r_prime;
+array_matrix3 = matrix_array(r_a3,uni_distance,row_elements,column_elements);
+array_matrix4 = matrix_array(r_a4,uni_distance,row_elements,column_elements);
 
-array_matrices = [array_matrix,array_matrix2];
-%array_matrices = [array_matrix];
+%array_matrices = [array_matrix,array_matrix2,array_matrix3,array_matrix4];
+array_matrices = [array_matrix];
 
 sub_arrays = length(array_matrices);
 
 figure(1);      %Plot the geometry in the xy-plane
 for array = 1:sub_arrays
-    plot(array_matrices(array).r_prime(1,:),array_matrices(array).r_prime(2,:),...
-        'linestyle','none','marker','*');
+    z_array_coord = zeros(length(array_matrices(array).r_prime(1,:)));
+    plot3(array_matrices(array).r_prime(1,:),array_matrices(array).r_prime(2,:),...
+        z_array_coord,'linestyle','none','marker','o');
+    axis square
+    xlim([-0.5 0.5])
+    ylim([-0.5 0.5])
+    zlim([-0.5 0.5])
     hold on
+end
+
+for source = 1:length(sources)
+    rho_source = sources(source).rho;
+    theta_source = sources(source).theta;
+    phi_source = sources(source).phi;
+    x_coord = rho_source*sin(theta_source)*cos(phi_source);
+    y_coord = rho_source*sin(theta_source)*sin(phi_source);
+    z_coord = rho_source*cos(theta_source);
+    plot3(x_coord,y_coord,...
+        z_coord,'linestyle','none','marker','o','MarkerFaceColor','#D9FFFF');
 end
 
 %% Generate signals on each element of the audio array
@@ -48,7 +68,22 @@ for array = 1:sub_arrays
     array_audio_signals(array).audio_signals = temp_signal;
     disp(strcat('Audio signal for array ', int2str(array), ' generated'));
 end
- 
+
+%% Plot generated signals
+
+figure(2)
+samples_max = 100;
+for i = 1:length(array_audio_signals(1).audio_signals(1,:))
+    plot(1:samples_max,array_audio_signals(1).audio_signals(1:samples_max,i))
+    hold on
+end
+set(gca,'TickLabelInterpreter','latex','FontSize',18)
+xlabel('n ','Interpreter','latex','FontSize',18);
+ylabel('x[n]','Interpreter','latex','FontSize',18)
+%legend('MATLAB−sim','CST−sim','Interpreter','latex','location','southeast')
+%set(gca,'GridALpha',0.1,'LineWidth',.3);
+exportgraphics(gcf,'generated_signals_close.png','Resolution',300)
+
 % 
 % 
 % 
@@ -74,7 +109,7 @@ r_scan = sqrt(2);                   %radius of scanning window. r_scan^2 = x^2 +
 
 % Which bands to check
 f_bands_N = 45;          %Linearly spaced N bands,
-frequency_bands = linspace(100,3900,f_bands_N);
+frequency_bands = linspace(100,4500,f_bands_N);
 
 % Create N-audio complete audio signals for every band
 audio_filtered_complete(sub_arrays,f_bands_N) = audio_data;
@@ -138,7 +173,7 @@ for x_ind = 1:length(x_listen)
                   % beamwidth.
                   % weight = adaptive_array_config_gen2(array_matrix,frequency,theta,phi,c);
                   weight = adaptive_array_config(array_matrices(array),frequency,c);
-                  % weight = ones(1,elements);
+                  %weight = ones(1,elements);
     
                   % Perform the beamforming algorithm (phase-shift input signal according to listening direction)
                   mic_data = mic_data + beam_forming_alogrithm(array_matrices(array),[theta,phi],...
@@ -188,6 +223,7 @@ clims = [0 max_intensity];
 figure(20)
 for plot_ind = 1:f_bands_N
     % figure(plot_ind);
+    nexttile
     imagesc(x_listen,y_listen,color_maps_complete(plot_ind).color_data_matrix,clims);
     set(gca,'YDir','normal');
     title(strcat('Frequency @ ', int2str(frequency_bands(plot_ind)), ' Hz'),...
@@ -197,7 +233,7 @@ for plot_ind = 1:f_bands_N
     if plot_ind == f_bands_N
         break;
     end
-    nexttile
+    
 end
 
 % Sum all the colormaps for every frequency to see intensity for total
@@ -266,6 +302,34 @@ precision_map_temp = ((1./(color_map_intensity_grad/grad_max) )).* -color_map_in
 precision_map = zeros(length(y_listen),length(x_listen));
 precision_map(2:end-1,2:end-1) = precision_map_temp(2:end-1,2:end-1);
 precision_map = precision_map./(max(max(precision_map)));
+
+locations = find_sources(precision_map,x_listen,y_listen,0.6);
+sources_found = length(locations(:,1));
+
+validation_locations = find_sources(xy_val_check,x_listen,y_listen,0.3);
+
+locations_angles = zeros(sources_found,2);
+
+% Convert the locations to theta and phi
+for source_ind = 1:sources_found
+    x = locations(source_ind,1);
+    y = locations(source_ind,2);
+    z_0 = sqrt(r_scan^2-x^2-y^2);
+
+    x_val = validation_locations(source_ind,1);
+    y_val = validation_locations(source_ind,2);
+    z_0_val = sqrt(r_scan^2-x^2-y^2);
+
+    theta = 180/pi*acos(z_0/(sqrt(x^2 + y^2 + z_0^2)));   %Get theta from our x,y coordinates
+    phi = 180/pi*atan2(y,x);  
+
+    theta_validation = 180/pi*acos(z_0_val/(sqrt(x_val^2 + y_val^2 + z_0_val^2)));   %Get theta from our x,y coordinates
+    phi_validation = 180/pi*atan2(y_val,x_val); 
+
+    locations_angles(source_ind,:) = [theta,phi];
+    disp(strcat('Source found at theta =  ', int2str(theta), ', phi = ',int2str(phi)));
+    disp(strcat('validation location at theta =  ', int2str(theta_validation), ', phi = ',int2str(phi_validation)));
+end
 
 test(1,:) = 0;
 test(end,:) = 0;
@@ -338,7 +402,7 @@ end
 % Testing the AW_listening function to apply spatial filtering and obtain a
 % signal in the wanted direction
 
-audio_out = AW_listening(c,f_sampling,array_matrices,40,0,array_audio_signals);
+audio_out = AW_listening(c,f_sampling,array_matrices,20,0,array_audio_signals);
 
 %% Plot results 
 figure(6)
